@@ -23,8 +23,8 @@ void main() {
     final element = page.elements.first;
     expect(element.widthMm, 30);
     expect(element.heightMm, 40);
-    expect(element.yMm, 10); // Margin atas 10 mm
-    expect(element.xMm, greaterThanOrEqualTo(10));
+    expect(element.yMm, 5.0); // Margin atas 5 mm (0,5 cm)
+    expect(element.xMm, 5.0); // Margin kiri 5 mm (0,5 cm)
   });
 
   test(
@@ -47,7 +47,7 @@ void main() {
       final element = page.elements[i];
       expect(element.widthMm, 30);
       expect(element.heightMm, 40);
-      expect(element.yMm, 10); // Semua foto pada baris pertama
+      expect(element.yMm, 5.0); // Semua foto pada baris pertama
 
       if (i > 0) {
         final prevElement = page.elements[i - 1];
@@ -59,7 +59,7 @@ void main() {
   });
 
   test('Turun baris dengan jarak 0,5 cm jika lebar halaman tidak mencukupi', () {
-    // Pada A4 (lebar 210, margin 10x2 = 190 mm), foto 3x4 (30+5 = 35 mm per kolom) muat 5 foto per baris.
+    // Pada A4 (lebar 210, margin 5x2 = 200 mm), foto 3x4 (30+5 = 35 mm per kolom) muat 5 foto per baris.
     // Jika jumlah = 7, maka foto ke-6 dan ke-7 turun ke baris kedua.
     const config = PassportPhotoConfig(
       sourcePath: '/path/to/photo.jpg',
@@ -74,14 +74,14 @@ void main() {
     final page = document.pageAt(0)!;
     expect(page.elements.length, 7);
 
-    // 5 foto pertama di baris 0 (y = 10 mm)
+    // 5 foto pertama di baris 0 (y = 5 mm)
     for (var i = 0; i < 5; i++) {
-      expect(page.elements[i].yMm, 10);
+      expect(page.elements[i].yMm, 5.0);
     }
 
-    // Foto ke-6 dan ke-7 di baris 1: y = 10 + 40 (tinggi) + 5 (jarak) = 55 mm
-    expect(page.elements[5].yMm, closeTo(55.0, 0.001));
-    expect(page.elements[6].yMm, closeTo(55.0, 0.001));
+    // Foto ke-6 dan ke-7 di baris 1: y = 5 + 40 (tinggi) + 5 (jarak) = 50 mm
+    expect(page.elements[5].yMm, closeTo(50.0, 0.001));
+    expect(page.elements[6].yMm, closeTo(50.0, 0.001));
 
     // Jarak horizontal baris 2 tetap 5 mm
     final gapRow2 = page.elements[6].xMm -

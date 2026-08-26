@@ -8,7 +8,7 @@ import '../models/passport_photo_config.dart';
 
 abstract final class PassportPhotoDocumentBuilder {
   static const double gapMm = 5.0; // 0.5 cm antar foto
-  static const double marginMm = 10.0; // Margin 1 cm dari tepi kertas
+  static const double marginMm = 5.0; // 0.5 cm dari tepi kertas
 
   static LayoutDocument build(PassportPhotoConfig config) {
     final paperWidth = config.paperSize.widthMm;
@@ -32,9 +32,8 @@ abstract final class PassportPhotoDocumentBuilder {
     final totalPhotos = math.max(1, config.quantity);
     final totalPages = (totalPhotos / capacityPerPage).ceil();
 
-    final gridWidth = cols * photoWidth + (cols - 1) * gapMm;
-    final startX = math.max(marginMm, (paperWidth - gridWidth) / 2);
-    final startY = marginMm;
+    const startX = marginMm; // Posisi pojok kiri atas
+    const startY = marginMm; // Posisi pojok kiri atas
 
     final pages = <LayoutPage>[];
     var placed = 0;
