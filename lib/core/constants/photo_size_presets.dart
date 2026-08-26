@@ -34,6 +34,41 @@ class PhotoSizePreset {
     heightMm: 60,
   );
 
+  static const PhotoSizePreset twoR = PhotoSizePreset(
+    id: '2r',
+    label: '2R (6×9 cm)',
+    widthMm: 60,
+    heightMm: 90,
+  );
+
+  static const PhotoSizePreset threeR = PhotoSizePreset(
+    id: '3r',
+    label: '3R (8.9×12.7 cm)',
+    widthMm: 89,
+    heightMm: 127,
+  );
+
+  static const PhotoSizePreset fourR = PhotoSizePreset(
+    id: '4r',
+    label: '4R (10.2×15.2 cm)',
+    widthMm: 102,
+    heightMm: 152,
+  );
+
+  static const PhotoSizePreset fiveR = PhotoSizePreset(
+    id: '5r',
+    label: '5R (12.7×17.8 cm)',
+    widthMm: 127,
+    heightMm: 178,
+  );
+
+  static const PhotoSizePreset sixR = PhotoSizePreset(
+    id: '6r',
+    label: '6R (15.2×20.3 cm)',
+    widthMm: 152,
+    heightMm: 203,
+  );
+
   static const PhotoSizePreset custom = PhotoSizePreset(
     id: 'custom',
     label: 'Custom',
@@ -46,12 +81,27 @@ class PhotoSizePreset {
     twoByThree,
     threeByFour,
     fourBySix,
+    twoR,
+    threeR,
+    fourR,
+    fiveR,
+    sixR,
   ];
 
   static const List<PhotoSizePreset> selectablePresets = [
     ...presets,
     custom,
   ];
+
+  String get dimensionLabel =>
+      '${_formatNumber(widthMm)} × ${_formatNumber(heightMm)} mm';
+
+  static String _formatNumber(double value) {
+    if (value == value.roundToDouble()) {
+      return value.round().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
 
   PhotoSizePreset copyWith({
     String? id,

@@ -10,11 +10,14 @@ import '../../../core/services/print_service.dart';
 import '../../file_import/models/import_mode.dart';
 import '../../pdf/logic/pdf_layout_generator.dart';
 import '../logic/editor_session.dart';
+import '../logic/passport_photo_session.dart';
 import '../models/layout_document.dart';
 import '../models/layout_element.dart';
 import 'widgets/image_size_sheet.dart';
 import 'widgets/page_canvas.dart';
 import 'widgets/paper_size_sheet.dart';
+import 'widgets/passport_photo_quantity_sheet.dart';
+import 'widgets/passport_photo_size_sheet.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   const EditorScreen({super.key, required this.mode});
@@ -119,44 +122,97 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               )
-            : Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _editPaperSize(document),
-                      icon: const Icon(Icons.aspect_ratio_rounded),
-                      label: Text(
-                        document.paperSize.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+            : widget.mode == ImportMode.passportPhoto
+                ? Consumer(
+                    builder: (context, ref, _) {
+                      final passportConfig =
+                          ref.watch(passportPhotoConfigProvider);
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  _editPassportPaperSize(document),
+                              icon: const Icon(Icons.aspect_ratio_rounded),
+                              label: Text(
+                                document.paperSize.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _editPassportPhotoSize(),
+                              icon: const Icon(
+                                  Icons.photo_size_select_large_rounded),
+                              label: Text(
+                                passportConfig?.preset.label ?? 'Ukuran Foto',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _editPassportPhotoQuantity(),
+                              icon: const Icon(Icons.numbers_rounded),
+                              label: Text(
+                                passportConfig != null
+                                    ? '${passportConfig.quantity} Foto'
+                                    : 'Jumlah',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _editPaperSize(document),
+                          icon: const Icon(Icons.aspect_ratio_rounded),
+                          label: Text(
+                            document.paperSize.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: page.elements.isEmpty
+                              ? null
+                              : () =>
+                                  _editImageSize(page.elements.first, document),
+                          icon:
+                              const Icon(Icons.photo_size_select_large_rounded),
+                          label: const Text('Ukuran Gambar', maxLines: 1),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(52, 44),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: page.elements.isEmpty
+                            ? null
+                            : () => ref
+                                .read(editorSessionProvider.notifier)
+                                .rotateElementRight(
+                                    page.elements.first.pageIndex),
+                        child: const Icon(Icons.rotate_right_rounded),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: page.elements.isEmpty
-                          ? null
-                          : () => _editImageSize(page.elements.first, document),
-                      icon: const Icon(Icons.photo_size_select_large_rounded),
-                      label: const Text('Ukuran Gambar', maxLines: 1),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(52, 44),
-                      padding: EdgeInsets.zero,
-                    ),
-                    onPressed: page.elements.isEmpty
-                        ? null
-                        : () => ref
-                            .read(editorSessionProvider.notifier)
-                            .rotateElementRight(page.elements.first.pageIndex),
-                    child: const Icon(Icons.rotate_right_rounded),
-                  ),
-                ],
-              ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _runBusy(
@@ -284,6 +340,37 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
     if (result == null || !mounted) return;
     ref.read(editorSessionProvider.notifier).changePaperSize(result);
+  }
+
+  Future<void> _editPassportPaperSize(LayoutDocument document) async {
+    final result = await showPaperSizeSheet(
+      context,
+      current: document.paperSize,
+    );
+    if (result == null || !mounted) return;
+    ref.read(passportPhotoConfigProvider.notifier).setPaperSize(result);
+  }
+
+  Future<void> _editPassportPhotoSize() async {
+    final config = ref.read(passportPhotoConfigProvider);
+    if (config == null || !mounted) return;
+    final result = await showPassportPhotoSizeSheet(
+      context,
+      current: config.preset,
+    );
+    if (result == null || !mounted) return;
+    ref.read(passportPhotoConfigProvider.notifier).setPreset(result);
+  }
+
+  Future<void> _editPassportPhotoQuantity() async {
+    final config = ref.read(passportPhotoConfigProvider);
+    if (config == null || !mounted) return;
+    final result = await showPassportPhotoQuantitySheet(
+      context,
+      current: config.quantity,
+    );
+    if (result == null || !mounted) return;
+    ref.read(passportPhotoConfigProvider.notifier).setQuantity(result);
   }
 
   Future<void> _editImageSize(

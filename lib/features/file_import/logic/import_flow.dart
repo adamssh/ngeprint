@@ -34,11 +34,15 @@ Future<void> startImportFlow(
       return;
     }
 
+    final filesToImport = mode == ImportMode.passportPhoto
+        ? loaded.files.take(1).toList()
+        : loaded.files;
+
     final notifier = ref.read(importFilesProviderOf(mode).notifier);
-    if (replaceExisting) {
-      notifier.replaceAll(loaded.files);
+    if (replaceExisting || mode == ImportMode.passportPhoto) {
+      notifier.replaceAll(filesToImport);
     } else {
-      notifier.addAll(loaded.files);
+      notifier.addAll(filesToImport);
     }
 
     router.push(importRouteOf(mode));
@@ -71,8 +75,9 @@ Future<void> startImportFlow(
 }
 
 Future<List<String>> pickFilePaths(ImportMode mode) => switch (mode) {
-      ImportMode.imagePrint ||
+      ImportMode.imagePrint =>
+        FilePickerService.pickImages(allowMultiple: true),
       ImportMode.passportPhoto =>
-        FilePickerService.pickImages(),
+        FilePickerService.pickImages(allowMultiple: false),
       ImportMode.pdfPrint => FilePickerService.pickPdfDocuments(),
     };

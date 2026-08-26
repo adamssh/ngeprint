@@ -5,8 +5,9 @@ import '../error/app_exception.dart';
 import '../utils/file_utils.dart';
 
 abstract final class FilePickerService {
-  static Future<List<String>> pickImages() => _pick(
+  static Future<List<String>> pickImages({bool allowMultiple = true}) => _pick(
         type: FileType.image,
+        allowMultiple: allowMultiple,
         errorPrefix: 'Gagal memilih gambar',
       );
 
@@ -35,9 +36,17 @@ abstract final class FilePickerService {
   static Future<List<String>> _pick({
     required FileType type,
     List<String>? allowedExtensions,
+    bool allowMultiple = true,
     required String errorPrefix,
   }) async {
     try {
+      if (!allowMultiple) {
+        final single = await FilePicker.pickFile(
+          type: type,
+          allowedExtensions: allowedExtensions,
+        );
+        return single?.path != null ? [single!.path!] : const [];
+      }
       final files = await FilePicker.pickFiles(
         type: type,
         allowedExtensions: allowedExtensions,

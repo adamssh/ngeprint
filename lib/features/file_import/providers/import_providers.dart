@@ -33,6 +33,21 @@ class ImportFilesNotifier extends Notifier<List<ImportedFile>> {
   }
 }
 
+class PassportPhotoFilesNotifier extends ImportFilesNotifier {
+  @override
+  void replaceAll(List<ImportedFile> files) {
+    state = _withoutDuplicates(files).take(1).toList();
+  }
+
+  @override
+  void addAll(List<ImportedFile> files) {
+    final unique = _withoutDuplicates(files);
+    if (unique.isNotEmpty) {
+      state = [unique.last];
+    }
+  }
+}
+
 final imageImportFilesProvider =
     NotifierProvider<ImportFilesNotifier, List<ImportedFile>>(
   ImportFilesNotifier.new,
@@ -44,8 +59,8 @@ final pdfImportFilesProvider =
 );
 
 final passportPhotoImportFilesProvider =
-    NotifierProvider<ImportFilesNotifier, List<ImportedFile>>(
-  ImportFilesNotifier.new,
+    NotifierProvider<PassportPhotoFilesNotifier, List<ImportedFile>>(
+  PassportPhotoFilesNotifier.new,
 );
 
 NotifierProvider<ImportFilesNotifier, List<ImportedFile>>

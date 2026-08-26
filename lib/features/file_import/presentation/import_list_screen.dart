@@ -6,9 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/app_router.dart';
+import '../../../core/services/image_metadata_service.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../editor/logic/editor_session.dart';
 import '../../editor/logic/image_print_document_builder.dart';
+import '../../editor/logic/passport_photo_session.dart';
+import '../../editor/models/passport_photo_config.dart';
 import '../../pdf/logic/pdf_print_document_builder.dart';
 import '../logic/import_flow.dart';
 import '../models/import_mode.dart';
@@ -29,12 +32,28 @@ class ImportListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(mode.listTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Tambah berkas',
-            onPressed: () =>
-                startImportFlow(context, ref, mode, replaceExisting: false),
-          ),
+          if (mode == ImportMode.passportPhoto)
+            if (files.isEmpty)
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'Pilih foto',
+                onPressed: () =>
+                    startImportFlow(context, ref, mode, replaceExisting: true),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Ganti foto',
+                onPressed: () =>
+                    startImportFlow(context, ref, mode, replaceExisting: true),
+              )
+          else
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'Tambah berkas',
+              onPressed: () =>
+                  startImportFlow(context, ref, mode, replaceExisting: false),
+            ),
         ],
       ),
       body: files.isEmpty
@@ -80,15 +99,10 @@ class ImportListScreen extends ConsumerWidget {
       unawaited(_openPdfEditor(context, ref, mode));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${mode.continueActionLabel} akan tersedia pada tahap pengembangan '
-          'berikutnya.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (mode == ImportMode.passportPhoto) {
+      unawaited(_openPassportPhotoEditor(context, ref, mode));
+      return;
+    }
   }
 
   Future<void> _openImageEditor(
@@ -170,6 +184,43 @@ class ImportListScreen extends ConsumerWidget {
       scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Text('Gagal menyiapkan editor cetak PDF.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openPassportPhotoEditor(
+    BuildContext context,
+    WidgetRef ref,
+    ImportMode mode,
+  ) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      final files = ref.read(importFilesProviderOf(mode));
+      final photo = files.where((f) => f.isImage).firstOrNull;
+      if (photo == null) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Pilih 1 berkas pas foto terlebih dahulu.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      final dimensions = await ImageMetadataService.readDimensions(photo.path);
+      final config = PassportPhotoConfig(
+        sourcePath: photo.path,
+        sourcePixelWidth: dimensions?.widthPx,
+        sourcePixelHeight: dimensions?.heightPx,
+      );
+      ref.read(passportPhotoConfigProvider.notifier).start(config);
+      await router.push(AppRoutes.passportPhotoEditor);
+    } on Exception {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menyiapkan editor cetak pas foto.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
