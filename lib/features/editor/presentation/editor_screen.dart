@@ -109,10 +109,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
+        child: widget.mode == ImportMode.pdfPrint
+            ? OutlinedButton.icon(
                 onPressed: () => _editPaperSize(document),
                 icon: const Icon(Icons.aspect_ratio_rounded),
                 label: Text(
@@ -120,33 +118,45 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _editPaperSize(document),
+                      icon: const Icon(Icons.aspect_ratio_rounded),
+                      label: Text(
+                        document.paperSize.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: page.elements.isEmpty
+                          ? null
+                          : () => _editImageSize(page.elements.first, document),
+                      icon: const Icon(Icons.photo_size_select_large_rounded),
+                      label: const Text('Ukuran Gambar', maxLines: 1),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(52, 44),
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: page.elements.isEmpty
+                        ? null
+                        : () => ref
+                            .read(editorSessionProvider.notifier)
+                            .rotateElementRight(page.elements.first.pageIndex),
+                    child: const Icon(Icons.rotate_right_rounded),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: page.elements.isEmpty
-                    ? null
-                    : () => _editImageSize(page.elements.first, document),
-                icon: const Icon(Icons.photo_size_select_large_rounded),
-                label: const Text('Ukuran Gambar', maxLines: 1),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(52, 44),
-                padding: EdgeInsets.zero,
-              ),
-              onPressed: page.elements.isEmpty
-                  ? null
-                  : () => ref
-                      .read(editorSessionProvider.notifier)
-                      .rotateElementRight(page.elements.first.pageIndex),
-              child: const Icon(Icons.rotate_right_rounded),
-            ),
-          ],
-        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _runBusy(
@@ -160,8 +170,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  String _titleForMode(ImportMode mode) =>
-      mode == ImportMode.imagePrint ? 'Cetak Gambar' : mode.listTitle;
+  String _titleForMode(ImportMode mode) => switch (mode) {
+        ImportMode.imagePrint => 'Cetak Gambar',
+        ImportMode.pdfPrint => 'Cetak PDF',
+        ImportMode.passportPhoto => 'Cetak Pas Foto',
+      };
 
   Future<void> _runBusy(
     BuildContext context,

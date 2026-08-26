@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   static const String pdfImport = '/import/pdf';
   static const String passportPhotoImport = '/import/passport-photo';
   static const String imageEditor = '/editor/image-print';
+  static const String pdfEditor = '/editor/pdf-print';
 }
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -42,6 +43,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.imageEditor,
       builder: (context, state) =>
           const EditorScreen(mode: ImportMode.imagePrint),
+    ),
+    GoRoute(
+      path: AppRoutes.pdfEditor,
+      builder: (context, state) =>
+          const EditorScreen(mode: ImportMode.pdfPrint),
     ),
   ],
 );

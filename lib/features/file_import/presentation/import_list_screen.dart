@@ -9,6 +9,7 @@ import '../../../core/routing/app_router.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../editor/logic/editor_session.dart';
 import '../../editor/logic/image_print_document_builder.dart';
+import '../../pdf/logic/pdf_print_document_builder.dart';
 import '../logic/import_flow.dart';
 import '../models/import_mode.dart';
 import '../models/imported_file.dart';
@@ -75,6 +76,10 @@ class ImportListScreen extends ConsumerWidget {
       unawaited(_openImageEditor(context, ref, mode));
       return;
     }
+    if (mode == ImportMode.pdfPrint) {
+      unawaited(_openPdfEditor(context, ref, mode));
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -111,6 +116,60 @@ class ImportListScreen extends ConsumerWidget {
       scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Text('Gagal menyiapkan editor cetak gambar.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openPdfEditor(
+    BuildContext context,
+    WidgetRef ref,
+    ImportMode mode,
+  ) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    unawaited(
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const PopScope(
+          canPop: false,
+          child: AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Expanded(child: Text('Menyiapkan dokumen PDF...')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final files = ref.read(importFilesProviderOf(mode));
+      final document = await PdfPrintDocumentBuilder.build(files);
+      if (navigator.canPop()) navigator.pop();
+      if (document == null) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada halaman PDF yang dapat diproses.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      ref.read(editorSessionProvider.notifier).start(document);
+      await router.push(AppRoutes.pdfEditor);
+    } on Exception {
+      if (navigator.canPop()) navigator.pop();
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menyiapkan editor cetak PDF.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
