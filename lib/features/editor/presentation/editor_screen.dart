@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/error/app_exception.dart';
+import '../../../core/services/file_picker_service.dart';
+import '../../../core/services/print_service.dart';
 import '../../file_import/models/import_mode.dart';
+import '../../pdf/logic/pdf_layout_generator.dart';
 import '../logic/editor_session.dart';
 import '../models/layout_document.dart';
 import '../models/layout_element.dart';
@@ -21,6 +27,7 @@ class EditorScreen extends ConsumerStatefulWidget {
 
 class _EditorScreenState extends ConsumerState<EditorScreen> {
   final PageController _pageController = PageController();
+  bool _isBusy = false;
 
   @override
   void initState() {
@@ -60,6 +67,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         title: Text(_titleForMode(widget.mode)),
         centerTitle: false,
         actions: [
+          IconButton(
+            tooltip: 'Ekspor PDF',
+            icon: const Icon(Icons.save_alt_rounded),
+            onPressed: () => _runBusy(
+              context,
+              _exportPdf,
+              'Menyiapkan berkas PDF...',
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
@@ -116,11 +132,28 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 label: const Text('Ukuran Gambar', maxLines: 1),
               ),
             ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(52, 44),
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: page.elements.isEmpty
+                  ? null
+                  : () => ref
+                      .read(editorSessionProvider.notifier)
+                      .rotateElementRight(page.elements.first.pageIndex),
+              child: const Icon(Icons.rotate_right_rounded),
+            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _onPrintPressed,
+        onPressed: () => _runBusy(
+          context,
+          _printDocument,
+          'Menyiapkan dokumen cetak...',
+        ),
         icon: const Icon(Icons.print_outlined),
         label: const Text('Print'),
       ),
@@ -129,6 +162,107 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   String _titleForMode(ImportMode mode) =>
       mode == ImportMode.imagePrint ? 'Cetak Gambar' : mode.listTitle;
+
+  Future<void> _runBusy(
+    BuildContext context,
+    Future<void> Function() task,
+    String loadingLabel,
+  ) async {
+    if (_isBusy) return;
+    _isBusy = true;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(_showLoadingDialog(navigator, loadingLabel));
+    try {
+      await task();
+    } finally {
+      if (navigator.canPop()) navigator.pop();
+      _isBusy = false;
+    }
+  }
+
+  Future<void> _showLoadingDialog(
+    NavigatorState navigator,
+    String label,
+  ) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
+              Expanded(child: Text(label)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+  }
+
+  Future<void> _printDocument() async {
+    final session = ref.read(editorSessionProvider);
+    if (session == null || !mounted) return;
+    try {
+      final result = await PdfLayoutGenerator.generate(session.document);
+      if (!mounted) return;
+      if (result.unavailableSourcePaths.isNotEmpty) {
+        _showSnackBar(
+          '${result.unavailableSourcePaths.length} gambar tidak dapat '
+          'diproses dan dikosongkan di PDF.',
+        );
+      }
+      final printed = await PrintService.printDocument(
+        result.bytes,
+        jobName:
+            'ngeprint-${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!mounted) return;
+      _showSnackBar(
+        printed == true
+            ? 'Dokumen dikirim ke layanan cetak.'
+            : 'Pencetakan dibatalkan.',
+      );
+    } on Exception {
+      if (!mounted) return;
+      _showSnackBar('Gagal menyiapkan dokumen cetak. Coba lagi.');
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    final session = ref.read(editorSessionProvider);
+    if (session == null || !mounted) return;
+    try {
+      final result = await PdfLayoutGenerator.generate(session.document);
+      if (!mounted) return;
+      final savedUri = await FilePickerService.exportPdf(
+        bytes: result.bytes,
+        fileName:
+            'ngeprint-${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+      if (!mounted) return;
+      _showSnackBar(
+        savedUri != null ? 'PDF berhasil disimpan.' : 'Ekspor dibatalkan.',
+      );
+    } on Exception catch (error) {
+      if (!mounted) return;
+      _showSnackBar(
+        error is AppException
+            ? error.userMessage
+            : 'Gagal menyimpan PDF. Coba lagi.',
+      );
+    }
+  }
 
   Future<void> _editPaperSize(LayoutDocument document) async {
     final result = await showPaperSizeSheet(
@@ -160,14 +294,5 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           heightMm: heightMm,
         );
     }
-  }
-
-  void _onPrintPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fungsi cetak akan tersedia pada tahap berikutnya.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 }

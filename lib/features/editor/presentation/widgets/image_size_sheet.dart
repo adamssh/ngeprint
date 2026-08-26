@@ -57,8 +57,8 @@ class _ImageSizeSheetState extends State<_ImageSizeSheet> {
   late TextEditingController _heightController;
 
   double? get _aspectRatio {
-    final source = widget.element.sourceAspectRatio;
-    if (source != null) return source;
+    final effective = widget.element.effectiveAspectRatio;
+    if (effective != null) return effective;
     if (widget.element.heightMm > 0) {
       return widget.element.widthMm / widget.element.heightMm;
     }

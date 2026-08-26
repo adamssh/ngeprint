@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../error/app_exception.dart';
+import '../utils/file_utils.dart';
 
 abstract final class FilePickerService {
   static Future<List<String>> pickImages() => _pick(
@@ -14,6 +15,22 @@ abstract final class FilePickerService {
         allowedExtensions: const ['pdf'],
         errorPrefix: 'Gagal memilih PDF',
       );
+
+  static Future<String?> exportPdf({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    try {
+      final uri = await FilePicker.saveFile(
+        fileName: fileName,
+        bytes: bytes,
+        mimeType: FileUtils.pdfMimeType,
+      );
+      return uri?.toString();
+    } on PlatformException catch (error) {
+      throw AppException('Gagal menyimpan PDF: ${error.message ?? error.code}');
+    }
+  }
 
   static Future<List<String>> _pick({
     required FileType type,

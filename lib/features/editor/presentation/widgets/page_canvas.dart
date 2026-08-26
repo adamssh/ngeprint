@@ -76,17 +76,21 @@ class _ElementView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Image.file(
-      File(element.sourcePath),
-      fit: BoxFit.fill,
-      filterQuality: FilterQuality.medium,
-      gaplessPlayback: true,
-      errorBuilder: (_, _, _) => ColoredBox(
-        color: colorScheme.surfaceContainerHighest,
-        child: Icon(
-          Icons.broken_image_outlined,
-          size: 40,
-          color: colorScheme.onSurfaceVariant,
+    final quarterTurns = (element.rotationDeg ~/ 90) % 4;
+    return RotatedBox(
+      quarterTurns: quarterTurns,
+      child: Image.file(
+        File(element.sourcePath),
+        fit: BoxFit.fill,
+        filterQuality: FilterQuality.medium,
+        gaplessPlayback: true,
+        errorBuilder: (_, _, _) => ColoredBox(
+          color: colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.broken_image_outlined,
+            size: 40,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );

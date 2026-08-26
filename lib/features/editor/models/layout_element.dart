@@ -42,6 +42,15 @@ class LayoutElement {
     return width / height;
   }
 
+  bool get isRotatedQuarterTurn =>
+      ((rotationDeg % 360) ~/ 90) % 2 == 1;
+
+  double? get effectiveAspectRatio {
+    final base = sourceAspectRatio;
+    if (base == null || base <= 0) return null;
+    return isRotatedQuarterTurn ? 1 / base : base;
+  }
+
   bool get isImage => type == LayoutElementType.image;
 
   LayoutElement copyWith({

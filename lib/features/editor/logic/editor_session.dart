@@ -54,17 +54,9 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
 
   void setElementToFit(int pageIndex) {
     _updateElementsOfPage(pageIndex, (element, paperSize) {
-      final rect = LayoutGeometry.fitContainCentered(
-        pageWidthMm: paperSize.widthMm,
-        pageHeightMm: paperSize.heightMm,
-        sourceAspectRatio: element.sourceAspectRatio,
-      );
-      return element.copyWith(
-        xMm: rect.x,
-        yMm: rect.y,
-        widthMm: rect.width,
-        heightMm: rect.height,
-        sizeMode: ElementSizeMode.fitToPage,
+      return _relayout(
+        element.copyWith(sizeMode: ElementSizeMode.fitToPage),
+        paperSize,
       );
     });
   }
@@ -76,7 +68,7 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
   }) {
     if (widthMm <= 0 || heightMm <= 0) return;
     _updateElementsOfPage(pageIndex, (element, paperSize) {
-      final rect = LayoutGeometry.manualCentered(
+      final rect = LayoutGeometry.clampManualTopLeft(
         pageWidthMm: paperSize.widthMm,
         pageHeightMm: paperSize.heightMm,
         widthMm: widthMm,
@@ -92,6 +84,17 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
     });
   }
 
+  void rotateElementRight(int pageIndex) {
+    _updateElementsOfPage(pageIndex, (element, paperSize) {
+      final rotated = element.copyWith(
+        rotationDeg: (element.rotationDeg + 90) % 360,
+        widthMm: element.heightMm,
+        heightMm: element.widthMm,
+      );
+      return _relayout(rotated, paperSize);
+    });
+  }
+
   void _updateElementsOfPage(
     int pageIndex,
     LayoutElement Function(LayoutElement element, PaperSize paperSize)
@@ -103,7 +106,8 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
     final pages = document.pages.map((page) {
       if (page.index != pageIndex) return page;
       return page.copyWith(
-        elements: page.elements.map((e) => transform(e, document.paperSize)).toList(),
+        elements:
+            page.elements.map((e) => transform(e, document.paperSize)).toList(),
       );
     }).toList();
     state = EditorSession(
@@ -114,7 +118,7 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
 
   LayoutElement _relayout(LayoutElement element, PaperSize paperSize) {
     if (element.sizeMode == ElementSizeMode.manual) {
-      final rect = LayoutGeometry.manualCentered(
+      final rect = LayoutGeometry.clampManualTopLeft(
         pageWidthMm: paperSize.widthMm,
         pageHeightMm: paperSize.heightMm,
         widthMm: element.widthMm,
@@ -127,10 +131,10 @@ class EditorSessionNotifier extends Notifier<EditorSession?> {
         heightMm: rect.height,
       );
     }
-    final rect = LayoutGeometry.fitContainCentered(
+    final rect = LayoutGeometry.fitContainTopLeft(
       pageWidthMm: paperSize.widthMm,
       pageHeightMm: paperSize.heightMm,
-      sourceAspectRatio: element.sourceAspectRatio,
+      sourceAspectRatio: element.effectiveAspectRatio,
     );
     return element.copyWith(
       xMm: rect.x,

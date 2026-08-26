@@ -19,7 +19,7 @@ abstract final class ImagePrintDocumentBuilder {
       if (!source.isImage) continue;
       final dimensions =
           await ImageMetadataService.readDimensions(source.path);
-      final rect = LayoutGeometry.fitContainCentered(
+      final rect = LayoutGeometry.fitContainTopLeft(
         pageWidthMm: paperSize.widthMm,
         pageHeightMm: paperSize.heightMm,
         sourceAspectRatio: dimensions?.aspectRatio,
