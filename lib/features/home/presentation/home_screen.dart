@@ -12,7 +12,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ngeprint'),
+        title: const Text('Ngeprint'),
         centerTitle: false,
       ),
       body: SafeArea(
